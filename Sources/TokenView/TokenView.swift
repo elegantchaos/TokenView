@@ -9,10 +9,30 @@ public protocol TokenViewDelegate {
     func tokenView(_ view: TokenView, changedTokens tokens: [Token])
 }
 
+/// UITextView which displays its contents as a sequence of tokens.
+///
+/// The contents are basically just normal text, but we override the draw method
+/// to show a round-rect background behind each token.
+///
+/// The token names are allowed to contain spaces, which means that we need to
+/// use something else to delimit tokens. We use the non breaking space for this,
+/// and we trap the user typing a space and do the correct thing depending on context.
+///
+/// We also trap selection changes, to allow the user to both edit existing tokens and type
+/// new ones. If the user positions the cursor directly to the right of a token and hits delete,
+/// or moves the cursor left, we select the whole token. A second deletion will delete the token.
+/// Moving the cursor when the whole token is selected will instead place the cursor at the end
+/// of the token so that individual characters can be deleted.
+///
+
+/// TODO: use allTokens to show token suggestions
+
 public class TokenView: UITextView {
-    static let tagKey = NSAttributedString.Key(rawValue: "tag")
-    
-    struct TokenRange {
+    static private let tagKey = NSAttributedString.Key(rawValue: "tag")
+    static private let separatorCharacter: Character = "\u{a0}"
+    static private let separatorString = String(TokenView.separatorCharacter)
+
+    private struct TokenRange {
         let tag: Token
         let range: NSRange
     }
@@ -25,8 +45,6 @@ public class TokenView: UITextView {
     private var wholeToken: TokenRange?
     
     private var skipSelection = false
-    private let separator: Character = " "
-    private let separatorString = String(" ")
     
     public let normalTokenColor = UIColor.systemGray2
     public let currentTokenColor = UIColor.systemGray
@@ -50,7 +68,7 @@ public class TokenView: UITextView {
         if let context = UIGraphicsGetCurrentContext() {
             let origin = CGPoint(x: textContainerInset.left, y: textContainerInset.top)
             context.saveGState()
-            let items = text.split(separator: separator)
+            let items = text.split(separator: TokenView.separatorCharacter)
             var range = NSRange(location: 0, length: 0)
             for item in items {
                 let string = String(item)
@@ -83,7 +101,7 @@ public class TokenView: UITextView {
             baseAttributes[NSAttributedString.Key.font] = font
         }
         
-        let spacer = NSAttributedString(string: separatorString, attributes: baseAttributes)
+        let spacer = NSAttributedString(string: TokenView.separatorString, attributes: baseAttributes)
         for tag in tokens {
             var attributes = baseAttributes
             attributes[TokenView.tagKey] = tag
@@ -98,7 +116,7 @@ public class TokenView: UITextView {
     }
     
     private func updateTokens() {
-        let items = text.split(separator: separator)
+        let items = text.split(separator: TokenView.separatorCharacter)
         let newTags = items.map({Token(name: String($0))})
         if newTags != tokens {
             tokens = newTags
@@ -152,7 +170,7 @@ extension TokenView: UITextViewDelegate {
         
         if let tokenRange = wholeToken {
             textView.selectedRange = tokenRange.range
-            textView.insertText(text == " " ? separatorString : text)
+            textView.insertText(text == " " ? TokenView.separatorString : text)
             wholeToken = nil
             return false
         }
@@ -172,7 +190,7 @@ extension TokenView: UITextViewDelegate {
                 print("inserting space in tag \(tag.name)")
             } else {
                 print("inserting space")
-                textView.insertText(separatorString)
+                textView.insertText(TokenView.separatorString)
                 return false
             }
         }
