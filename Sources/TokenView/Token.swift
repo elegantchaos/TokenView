@@ -6,8 +6,12 @@
 import Foundation
 
 public struct Token: Hashable {
-    let name: String
+    public let name: String
 
+    public init(name: String) {
+        self.name = name
+    }
+    
     public static func == (lhs: Token, rhs: Token) -> Bool {
         lhs.name == rhs.name
     }

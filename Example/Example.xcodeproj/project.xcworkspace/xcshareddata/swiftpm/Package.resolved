@@ -1,0 +1,16 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "TokenView",
+        "repositoryURL": "git@github.com:elegantchaos/TokenView.git",
+        "state": {
+          "branch": null,
+          "revision": "2cc7c1f205cd466595e9b8b1ed784e55da566601",
+          "version": "1.0.0"
+        }
+      }
+    ]
+  },
+  "version": 1
+}
