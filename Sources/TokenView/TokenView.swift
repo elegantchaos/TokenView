@@ -6,7 +6,15 @@
 import UIKit
 
 public protocol TokenViewDelegate {
+    func tokenView(_ view: TokenView, updatedTokens tokens: [Token])
     func tokenView(_ view: TokenView, changedTokens tokens: [Token])
+    func tokenView(_ view: TokenView, menuItemsForToken: Token) -> [UIMenuItem]
+}
+
+extension TokenViewDelegate {
+    func tokenView(_ view: TokenView, updatedTokens tokens: [Token]) { }
+    func tokenView(_ view: TokenView, changedTokens tokens: [Token]) { }
+    func tokenView(_ view: TokenView, menuItemsForToken: Token) -> [UIMenuItem] { return [] }
 }
 
 /// UITextView which displays its contents as a sequence of tokens.
@@ -60,7 +68,8 @@ public class TokenView: UITextView {
         self.autocapitalizationType = .none
         
         updateText()
-        tokenDelegate?.tokenView(self, changedTokens: tokens)
+        tokenDelegate?.tokenView(self, updatedTokens: tokens)
+        setNeedsDisplay()
     }
     
     
@@ -76,7 +85,7 @@ public class TokenView: UITextView {
                 let tagRange = layoutManager.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
                 var rect = layoutManager.boundingRect(forGlyphRange: tagRange, in: textContainer)
                 normalTokenColor.setFill()
-                if let itemTokenRange = tokenRange(at: range) {
+                if isEditable, let itemTokenRange = tokenRange(at: range) {
                     if itemTokenRange.tag == wholeToken?.tag {
                         wholeTokenColor.setFill()
                     } else if itemTokenRange.tag == currentToken?.tag {
@@ -121,7 +130,7 @@ public class TokenView: UITextView {
         if newTags != tokens {
             tokens = newTags
             updateText()
-            tokenDelegate?.tokenView(self, changedTokens: tokens)
+            tokenDelegate?.tokenView(self, updatedTokens: tokens)
             self.setNeedsDisplay()
         }
     }
@@ -202,6 +211,10 @@ extension TokenView: UITextViewDelegate {
         updateTokens()
     }
     
+    public func textViewDidEndEditing(_ textView: UITextView) {
+        tokenDelegate?.tokenView(self, changedTokens: tokens)
+    }
+    
     public func textViewDidChangeSelection(_ textView: UITextView) {
         guard skipSelection == false else {
             skipSelection = false
@@ -222,6 +235,13 @@ extension TokenView: UITextViewDelegate {
         } else {
             print("selection not in tag")
             clearSelection()
+        }
+        
+        let menu = UIMenuController.shared
+        if let token = currentToken {
+            menu.menuItems = tokenDelegate?.tokenView(self, menuItemsForToken: token.tag)
+        } else {
+            menu.menuItems = []
         }
     }
 }
